@@ -40,7 +40,9 @@ jobs:
           path: site
       # Only changed files are sent: the action keeps a state file in the
       # target folder and deletes only files it uploaded itself.
-      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      - id: upload
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        continue-on-error: true
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
@@ -48,3 +50,18 @@ jobs:
           protocol: ftps
           local-dir: site/
           server-dir: ${{ inputs.folder }}/
+          timeout: 60000
+      # GoDaddy sometimes refuses a connection when several uploads arrive
+      # close together (Timeout (control socket)); one retry after a pause.
+      - if: steps.upload.outcome == 'failure'
+        run: sleep 60
+      - if: steps.upload.outcome == 'failure'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: site/
+          server-dir: ${{ inputs.folder }}/
+          timeout: 60000
