@@ -2,7 +2,9 @@
 DirectoryIndex index.html
 ErrorDocument 404 /404.html
 
-# www.kallistesoft.ca → kallistesoft.ca (GitHub Pages used to do this).
+# http:// and www. → https://kallistesoft.ca (GitHub Pages used to do this;
+# cPanel's Force HTTPS switch doesn't cover this domain).
 RewriteEngine On
+RewriteCond %{HTTPS} off [OR]
 RewriteCond %{HTTP_HOST} ^www\.kallistesoft\.ca$ [NC]
 RewriteRule ^ https://kallistesoft.ca%{REQUEST_URI} [R=301,L]
