@@ -1,0 +1,50 @@
+# Shared deploy for every Kallistesoft site: uploads a built site to its
+# folder on the GoDaddy hosting over FTPS.
+#
+# Each site repo builds its files, uploads them as an artifact named "site",
+# then calls this workflow:
+#
+#   deploy:
+#     needs: build
+#     uses: kallistesoft/kallistesoft-site/.github/workflows/deploy-ftp.yml@main
+#     with:
+#       folder: quiz.kallistesoft.ca
+#     secrets: inherit
+#
+# FTP_SERVER, FTP_USERNAME and FTP_PASSWORD are organization secrets
+# (github.com/organizations/kallistesoft/settings/secrets/actions).
+# FTP_SERVER is the cPanel server name (p3plzcpnl507418.prod.phx3.secureserver.net),
+# not ftp.kallistesoft.ca: it works before the DNS switch and matches the
+# server's TLS certificate.
+name: Deploy to GoDaddy (FTPS)
+
+on:
+  workflow_call:
+    inputs:
+      folder:
+        description: Folder on the hosting, relative to the FTP account root, which is public_html (e.g. quiz.kallistesoft.ca)
+        required: true
+        type: string
+
+concurrency:
+  group: ftp-${{ inputs.folder }}
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: site
+      # Only changed files are sent: the action keeps a state file in the
+      # target folder and deletes only files it uploaded itself.
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: site/
+          server-dir: ${{ inputs.folder }}/
